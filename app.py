@@ -1,24 +1,23 @@
-import json
 import os
+import json
 import logging
 from datetime import date
 from fpdf import FPDF
-from flask import Flask, request, send_file, redirect, url_for, session, render_template
-from flask_cors import CORS
+from flask import Flask, request, send_file, jsonify, render_template
 import io
+from dotenv import load_dotenv
+
+# ------------------ Load .env ------------------
+load_dotenv()
 
 # ------------------ CONFIG ------------------
 CLIENTS_FILE = "clients.json"
 INVOICES_FILE = "invoices.json"
 INVOICE_COUNTER_FILE = "invoice_counter.json"
 SIGNATURE_IMAGE = r"Signatory.jpg"
-CALIBRI_FONT_PATH = "CALIBRI.TTF"  # font in project folder
+CALIBRI_FONT_PATH = "CALIBRI.TTF"
 
-SECRET_USERNAME = "sugandhm881@gmail.com"
-SECRET_PASSWORD = "Avkash@1997"
 app = Flask(__name__)
-app.secret_key = "YourSecretKey123=Kalkibaathai"
-CORS(app)
 
 # ------------------ LOGGING ------------------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", handlers=[logging.StreamHandler()])
@@ -57,44 +56,53 @@ def convert_to_words(number):
              "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
     tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty",
             "Sixty", "Seventy", "Eighty", "Ninety"]
-
-    def convert_group(n):
+    
+    def two_digit(n):
         if n < 20:
             return units[n]
         else:
             return tens[n // 10] + (" " + units[n % 10] if n % 10 else "")
-
+    
+    def three_digit(n):
+        h = n // 100
+        r = n % 100
+        if h and r:
+            return units[h] + " Hundred " + two_digit(r)
+        elif h:
+            return units[h] + " Hundred"
+        else:
+            return two_digit(r)
+    
     n = int(number)
-    paise = round((number - n) * 100)
-    s = str(n)
-    p = len(s)
-    words = []
-
-    if p >= 8:
-        crores = int(s[p - 8:p - 6])
-        if crores:
-            words.append(convert_group(crores) + " Crore")
-    if p >= 6:
-        lakhs = int(s[max(0, p - 8):p - 6]) if p >= 8 else int(s[max(0, p - 6):p - 4])
-        if lakhs:
-            words.append(convert_group(lakhs) + " Lakh")
-    if p >= 4:
-        thousands = int(s[max(0, p - 6):p - 4]) if p >= 6 else int(s[max(0, p - 4):p - 2])
-        if thousands:
-            words.append(convert_group(thousands) + " Thousand")
-    if p >= 3:
-        hundreds = int(s[max(0, p - 4):p - 3]) if p >= 4 else int(s[max(0, p - 3):p - 2])
-        if hundreds:
-            words.append(convert_group(hundreds) + " Hundred")
-
-    remaining = int(s[-2:]) if p >= 2 else int(s)
-    if remaining:
-        words.append(convert_group(remaining))
-
-    result = " ".join(words)
+    paise = int(round((number - n) * 100))
+    
+    words = ""
+    
+    crore = n // 10000000
+    n %= 10000000
+    if crore:
+        words += three_digit(crore) + " Crore "
+    
+    lakh = n // 100000
+    n %= 100000
+    if lakh:
+        words += three_digit(lakh) + " Lakh "
+    
+    thousand = n // 1000
+    n %= 1000
+    if thousand:
+        words += three_digit(thousand) + " Thousand "
+    
+    if n:
+        words += three_digit(n)
+    
+    words = words.strip()
+    
     if paise:
-        result += f" and {convert_group(paise)} Paise"
-    return result + " Only"
+        words += f" and {two_digit(paise)} Paise"
+    
+    return words + " Only"
+
 
 # ------------------ PDF Generation ------------------
 def generate_pdf(invoice_data):
@@ -103,17 +111,17 @@ def generate_pdf(invoice_data):
     pdf.add_font("Calibri", "", CALIBRI_FONT_PATH, uni=True)
     pdf.add_font("Calibri", "B", CALIBRI_FONT_PATH, uni=True)
 
-    pdf.set_font("Calibri", "B", 22)
     margin = 15
     page_width = pdf.w - 2 * margin
 
     # Header
+    pdf.set_font("Calibri", "B", 20)
     pdf.cell(page_width, 10, "MB COLLECTION", ln=True, align='C')
     pdf.set_font("Calibri", "B", 14)
     pdf.cell(page_width, 8, "Tax Invoice", ln=True, align='C')
     pdf.set_font("Calibri", "", 10)
     pdf.cell(page_width, 5, "H.No 3A Shri Krishana Vatika, Sudamapuri, Vijaynagar, Ghaziabad, Uttar Pradesh - 201001", ln=True, align='C')
-    pdf.cell(page_width, 5, "Phone: +91-8651537856 | E-mail: skpa.avkashmishra@gmail.com", ln=True, align='C')
+    pdf.cell(page_width, 5, "Phone: +91-8651537856 | GSTIN: 09ENEPM4809Q1Z8", ln=True, align='C')
     pdf.ln(5)
     pdf.line(margin, pdf.get_y(), pdf.w - margin, pdf.get_y())
 
@@ -125,6 +133,7 @@ def generate_pdf(invoice_data):
     pdf.cell(0, 5, invoice_data['client_name'], ln=True)
     pdf.cell(0, 5, invoice_data['client_address1'], ln=True)
     pdf.cell(0, 5, invoice_data['client_address2'], ln=True)
+    pdf.cell(0, 5, f"GSTIN: {invoice_data['client_gstin']}", ln=True)
 
     # Invoice info
     pdf.set_xy(140, 65)
@@ -132,100 +141,72 @@ def generate_pdf(invoice_data):
     pdf.cell(0, 5, f"Invoice No: {invoice_data['bill_no']}", ln=True)
     pdf.set_x(140)
     pdf.cell(0, 5, f"Date: {invoice_data['invoice_date']}", ln=True)
-    pdf.set_x(140)
-    pdf.cell(0, 5, f"GSTIN: {invoice_data['client_gstin']}", ln=True)
 
-    pdf.ln(5)
+    pdf.ln(10)
     pdf.line(margin, pdf.get_y(), pdf.w - margin, pdf.get_y())
 
-    # Table header
-    pdf.set_fill_color(230, 230, 230)
-    pdf.set_font("Calibri", "B", 10)
+    # Table Header
     pdf.set_y(pdf.get_y() + 5)
-    pdf.cell(130, 7, "Particulars", border=1, align='C', fill=True)
-    pdf.cell(20, 7, "HSN", border=1, align='C', fill=True)
-    pdf.cell(35, 7, "Amount", border=1, align='C', fill=True)
-    pdf.ln()
-
-    # Table data
-    pdf.set_font("Calibri", "", 10)
-    pdf.multi_cell(130, 5, invoice_data['particulars'], border=1)
-    y_start = pdf.get_y() - 5
-    pdf.set_xy(145, y_start)
-    pdf.cell(20, 10, "998222", border=1, align='C')
-    pdf.cell(35, 10, f"{invoice_data['amount']:.2f}", border=1, align='R')
-    pdf.ln(20)
-
-    # Totals (aligned with table header)
-    pdf.set_x(145)
+    pdf.set_fill_color(200, 200, 200)
     pdf.set_font("Calibri", "B", 10)
-    pdf.cell(20, 5, "Sub Total", border=1)
-    pdf.cell(35, 5, f"{invoice_data['sub_total']:.2f}", border=1, align='R')
+    pdf.cell(120, 8, "Particulars", border=1, align='C', fill=True)
+    pdf.cell(30, 8, "HSN", border=1, align='C', fill=True)
+    pdf.cell(40, 8, "Amount", border=1, align='C', fill=True)
     pdf.ln()
-    pdf.set_x(145)
-    pdf.cell(20, 5, "IGST @18%", border=1)
-    pdf.cell(35, 5, f"{invoice_data['igst']:.2f}", border=1, align='R')
-    pdf.ln()
-    pdf.set_x(145)
-    pdf.cell(20, 5, "CGST @9%", border=1)
-    pdf.cell(35, 5, f"{invoice_data['cgst']:.2f}", border=1, align='R')
-    pdf.ln()
-    pdf.set_x(145)
-    pdf.cell(20, 5, "SGST @9%", border=1)
-    pdf.cell(35, 5, f"{invoice_data['sgst']:.2f}", border=1, align='R')
-    pdf.ln()
-    pdf.set_x(145)
-    pdf.cell(20, 5, "Grand Total", border=1)
-    pdf.cell(35, 5, f"{invoice_data['grand_total']:.2f}", border=1, align='R')
-    pdf.ln(15)
 
-    # Amount in words & bank details
+    # Table Row
     pdf.set_font("Calibri", "", 10)
-    pdf.cell(0, 5, f"Rupees: {convert_to_words(invoice_data['grand_total'])}", ln=True)
+    pdf.cell(120, 8, invoice_data['particulars'], border=1)
+    pdf.cell(30, 8, "998222", border=1, align='C')
+    pdf.cell(40, 8, f"{invoice_data['amount']:.2f}", border=1, align='R')
+    pdf.ln()
+
+    # Totals Table
+    pdf.set_font("Calibri", "B", 10)
+    pdf.cell(150, 6, "Sub Total", border=1)
+    pdf.cell(40, 6, f"{invoice_data['sub_total']:.2f}", border=1, align='R')
+    pdf.ln()
+    pdf.cell(150, 6, "IGST @18%", border=1)
+    pdf.cell(40, 6, f"{invoice_data['igst']:.2f}", border=1, align='R')
+    pdf.ln()
+    pdf.cell(150, 6, "CGST @9%", border=1)
+    pdf.cell(40, 6, f"{invoice_data['cgst']:.2f}", border=1, align='R')
+    pdf.ln()
+    pdf.cell(150, 6, "SGST @9%", border=1)
+    pdf.cell(40, 6, f"{invoice_data['sgst']:.2f}", border=1, align='R')
+    pdf.ln()
+    pdf.cell(150, 6, "Grand Total", border=1)
+    pdf.cell(40, 6, f"{invoice_data['grand_total']:.2f}", border=1, align='R')
+    pdf.ln(10)
+
+    # Amount in words
+    pdf.set_font("Calibri", "", 10)
+    pdf.multi_cell(0, 6, f"Rupees: {convert_to_words(invoice_data['grand_total'])}")
+
+    # Bank Details
     pdf.cell(0, 5, "Bank Name: Yes Bank", ln=True)
     pdf.cell(0, 5, "Account Holder Name: MB Collection", ln=True)
     pdf.cell(0, 5, "Account No: 003861900014956", ln=True)
     pdf.cell(0, 5, "IFSC Code: YESB0000038", ln=True)
+
     pdf.ln(15)
     pdf.set_font("Calibri", "B", 10)
     pdf.cell(0, 5, "For MB COLLECTION", ln=True, align='R')
 
     if os.path.exists(SIGNATURE_IMAGE):
         pdf.image(SIGNATURE_IMAGE, x=150, y=pdf.get_y(), w=40)
-    pdf.ln(20)
 
     pdf_bytes = pdf.output(dest="S").encode("latin-1")
     return io.BytesIO(pdf_bytes)
 
+
 # ------------------ Routes ------------------
 @app.route("/", methods=["GET"])
 def home():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-    return send_file("index.html")
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        if username == SECRET_USERNAME and password == SECRET_PASSWORD:
-            session["logged_in"] = True
-            return redirect(url_for("home"))
-        else:
-            error = "Invalid username or password"
-    return render_template("login.html", error=error)
-
-@app.route("/logout", methods=["GET", "POST"])
-def logout():
-    session.pop("logged_in", None)
-    return redirect(url_for("login"))
+    return render_template("index.html")
 
 @app.route("/generate-invoice", methods=["POST"])
 def handle_invoice():
-    if not session.get("logged_in"):
-        return {"error": "Unauthorized"}, 401
     try:
         data = request.json
         client_name = data.get('client_name')
@@ -255,7 +236,7 @@ def handle_invoice():
         invoice_date_str = date.today().strftime('%d-%b-%Y')
         my_gstin = "09ENEPM4809Q1Z8"
 
-        # GST
+        # GST Calculation
         sub_total = amount
         igst, cgst, sgst = 0, 0, 0
         if client_gstin[:2] == my_gstin[:2]:
@@ -296,9 +277,7 @@ def handle_invoice():
 
 @app.route('/clients', methods=['GET'])
 def get_clients():
-    if not session.get("logged_in"):
-        return {"error": "Unauthorized"}, 401
-    return load_clients()
+    return jsonify(load_clients())
 
 # ------------------ Run ------------------
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
 Flask
-fpdf2
 Flask-Cors
+fpdf
+python-dotenv
