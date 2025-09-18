@@ -39,18 +39,19 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 
-# ------------------ Flask-Login setup ------------------
+
+# ----- Flask-Login Setup -----
 login_manager = LoginManager()
-login_manager.login_view = "login"
 login_manager.init_app(app)
+login_manager.login_view = "login"
 
 class User(UserMixin):
     def __init__(self, id):
         self.id = id
 
-# single user from .env
-AUTH_USERNAME = os.getenv("LOGIN_USER", os.getenv("BASIC_USER", "admin"))
-AUTH_PASSWORD = os.getenv("LOGIN_PASS", os.getenv("BASIC_PASS", "password"))
+# Single user credentials (from .env or default)
+AUTH_USERNAME = os.getenv("LOGIN_USER", "admin")
+AUTH_PASSWORD = os.getenv("LOGIN_PASS", "password")
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -229,12 +230,18 @@ def generate_pdf(invoice_data):
     pdf_bytes = pdf.output(dest="S").encode("latin-1")
     return io.BytesIO(pdf_bytes)
 
-# ------------------ Routes ------------------
+# ----- Routes -----
 
-# Login page & actions
+# Root route: redirect to login if not authenticated
+@app.route("/", methods=["GET"])
+def root():
+    if current_user.is_authenticated:
+        return redirect(url_for("home"))
+    return redirect(url_for("login"))
+
+# Login page & POST action
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    # if already logged in, redirect to home
     if current_user.is_authenticated:
         return redirect(url_for("home"))
 
@@ -242,17 +249,22 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "")
         password = request.form.get("password", "")
-
         if username == AUTH_USERNAME and password == AUTH_PASSWORD:
             user = User(id=username)
             login_user(user)
             return redirect(url_for("home"))
         else:
             error = "Invalid username or password"
-
     return render_template("login.html", error=error)
 
-@app.route("/logout")
+# Protected Home page
+@app.route("/home", methods=["GET"])
+@login_required
+def home():
+    return render_template("index.html")
+
+# Logout
+@app.route("/logout", methods=["GET"])
 @login_required
 def logout():
     logout_user()
