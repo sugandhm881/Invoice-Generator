@@ -13,5 +13,10 @@
         "address1": "Vasant Vihar",
         "address2": "Delhi - 110062",
         "gstin": "07AXMPS8810K1ZN"
+    },
+    "SM Tech": {
+        "address1": "Mahathwar",
+        "address2": "Darbhanga",
+        "gstin": "07DJTPM9189R1SC"
     }
 }

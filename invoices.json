@@ -382,5 +382,122 @@
         "cgst": 0,
         "sgst": 0,
         "grand_total": 5310.0
+    },
+    {
+        "bill_no": "INV/0026/24-25",
+        "invoice_date": "18-Sep-2025",
+        "client_name": "Guthi Enterprises",
+        "client_address1": "Vasant Vihar",
+        "client_address2": "Delhi - 110062",
+        "client_gstin": "07AXMPS8810K1ZN",
+        "my_gstin": "09ENEPM4809Q1Z8",
+        "particulars": "Accounting Service",
+        "amount": 1000.0,
+        "sub_total": 1000.0,
+        "igst": 180.0,
+        "cgst": 0,
+        "sgst": 0,
+        "grand_total": 1180.0
+    },
+    {
+        "bill_no": "INV/0027/24-25",
+        "invoice_date": "18-Sep-2025",
+        "client_name": "Sugandh Mishra",
+        "client_address1": "Mahathwar",
+        "client_address2": "Darbhanga, Bihar - 847427",
+        "client_gstin": "10DJTPM9189R1AC",
+        "my_gstin": "09ENEPM4809Q1Z8",
+        "particulars": "New",
+        "amount": 100.0,
+        "sub_total": 100.0,
+        "igst": 18.0,
+        "cgst": 0,
+        "sgst": 0,
+        "grand_total": 118.0
+    },
+    {
+        "bill_no": "INV/0028/24-25",
+        "invoice_date": "18-Sep-2025",
+        "client_name": "Guthi Enterprises",
+        "client_address1": "Vasant Vihar",
+        "client_address2": "Delhi - 110062",
+        "client_gstin": "07AXMPS8810K1ZN",
+        "particulars": "Test",
+        "amounts": [
+            100
+        ],
+        "sub_total": 100,
+        "igst": 18.0,
+        "cgst": 0,
+        "sgst": 0,
+        "grand_total": 118.0
+    },
+    {
+        "bill_no": "INV/0029/24-25",
+        "invoice_date": "18-Sep-2025",
+        "client_name": "Guthi Enterprises",
+        "client_address1": "Vasant Vihar",
+        "client_address2": "Delhi - 110062",
+        "client_gstin": "07AXMPS8810K1ZN",
+        "particulars": "Test",
+        "amounts": [
+            100
+        ],
+        "sub_total": 100,
+        "igst": 18.0,
+        "cgst": 0,
+        "sgst": 0,
+        "grand_total": 118.0
+    },
+    {
+        "bill_no": "INV/0030/24-25",
+        "invoice_date": "18-Sep-2025",
+        "client_name": "Sugandh Mishra",
+        "client_address1": "Mahathwar",
+        "client_address2": "Darbhanga, Bihar - 847427",
+        "client_gstin": "10DJTPM9189R1AC",
+        "particulars": "Test",
+        "amounts": [
+            100
+        ],
+        "sub_total": 100,
+        "igst": 18.0,
+        "cgst": 0,
+        "sgst": 0,
+        "grand_total": 118.0
+    },
+    {
+        "bill_no": "INV/0031/24-25",
+        "invoice_date": "18-Sep-2025",
+        "client_name": "Sugandh Mishra",
+        "client_address1": "Mahathwar",
+        "client_address2": "Darbhanga, Bihar - 847427",
+        "client_gstin": "10DJTPM9189R1AC",
+        "particulars": "Test",
+        "amounts": [
+            100
+        ],
+        "sub_total": 100,
+        "igst": 18.0,
+        "cgst": 0,
+        "sgst": 0,
+        "grand_total": 118.0
+    },
+    {
+        "bill_no": "INV/0032/24-25",
+        "invoice_date": "19-Sep-2025",
+        "client_name": "SM Tech",
+        "client_address1": "Mahathwar",
+        "client_address2": "Darbhanga",
+        "client_gstin": "07DJTPM9189R1SC",
+        "my_gstin": "09ENEPM4809Q1Z8",
+        "particulars": "Accounts Service",
+        "amount": 8000.0,
+        "amounts": null,
+        "sub_total": 8000.0,
+        "igst": 1440.0,
+        "cgst": 0.0,
+        "sgst": 0.0,
+        "grand_total": 9440.0
     }
 ]

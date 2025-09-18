@@ -299,7 +299,7 @@ def handle_invoice():
         counter = counter_data.get('counter', 0) + 1
         counter_data['counter'] = counter
         save_json(counter_data, INVOICE_COUNTER_FILE)
-        bill_no = f"INV/{counter:04d}/25-26"
+        bill_no = f"INV/{counter:04d}/24-25"
 
         invoice_date_str = date.today().strftime('%d-%b-%Y')
         my_gstin = "09ENEPM4809Q1Z8"
@@ -366,12 +366,8 @@ def get_clients_route():
 @login_required
 def invoices_list_route():
     invoices = load_invoices()
-    brief = [{
-        "bill_no": inv["bill_no"],
-        "date": inv.get("invoice_date"),
-        "grand_total": inv.get("grand_total"),
-        "client_name": inv.get("client_name")  # <-- add this
-    } for inv in invoices]
+    # keep payload small — send bill_no and date and grand_total
+    brief = [{"bill_no": inv["bill_no"], "date": inv.get("invoice_date"), "grand_total": inv.get("grand_total")} for inv in invoices]
     return jsonify(brief)
 
 # Download previous invoice by bill_no (protected) - allow slashes via path:

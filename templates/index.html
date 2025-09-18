@@ -6,81 +6,95 @@
     <title>MB COLLECTION - Invoice Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100 font-sans p-6">
-    <div class="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-6">
-        <h1 class="text-3xl font-bold mb-6 text-center">MB COLLECTION - Invoice Generator</h1>
+<div class="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-6">
 
-        <!-- Client Section -->
-        <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-2">Client Details</h2>
-            <select id="clientSelect" class="border rounded px-3 py-2 w-full mb-3">
-                <option value="">Select Existing Client</option>
-            </select>
-
-            <input type="text" id="client_name" placeholder="Client Name" class="border rounded px-3 py-2 w-full mb-2">
-            <input type="text" id="client_address1" placeholder="Address Line 1" class="border rounded px-3 py-2 w-full mb-2">
-            <input type="text" id="client_address2" placeholder="Address Line 2" class="border rounded px-3 py-2 w-full mb-2">
-            <input type="text" id="client_gstin" placeholder="GSTIN" class="border rounded px-3 py-2 w-full">
-        </div>
-
-        <!-- Invoice Items Section -->
-        <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-2">Invoice Items</h2>
-            <table class="w-full border-collapse mb-2" id="itemsTable">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="border px-2 py-1 text-left">Particulars</th>
-                        <th class="border px-2 py-1 text-left">HSN</th>
-                        <th class="border px-2 py-1 text-right">Amount</th>
-                        <th class="border px-2 py-1 text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="itemsBody">
-                    <tr>
-                        <td><input type="text" class="border px-2 py-1 w-full particulars"></td>
-                        <td><input type="text" class="border px-2 py-1 w-full hsn" value="998222"></td>
-                        <td><input type="number" class="border px-2 py-1 w-full amount" value="0"></td>
-                        <td class="text-center"><button type="button" onclick="removeRow(this)" class="text-red-500">Delete</button></td>
-                    </tr>
-                </tbody>
-            </table>
-            <button type="button" onclick="addRow()" class="bg-blue-500 text-white px-3 py-1 rounded">Add Item</button>
-        </div>
-
-        <!-- Totals Section -->
-        <div class="mb-6 text-right">
-            <p>Sub Total: ₹ <span id="subTotal">0.00</span></p>
-            <p>IGST @18%: ₹ <span id="igst">0.00</span></p>
-            <p>CGST @9%: ₹ <span id="cgst">0.00</span></p>
-            <p>SGST @9%: ₹ <span id="sgst">0.00</span></p>
-            <p class="font-bold text-lg">Grand Total: ₹ <span id="grandTotal">0.00</span></p>
-        </div>
-
-        <div class="text-center">
-            <button id="generateBtn" class="bg-green-500 text-white px-6 py-2 rounded font-semibold">Generate Invoice PDF</button>
-        </div>
+    <!-- Header with Title + Logout -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-center flex-1">MB COLLECTION - Invoice Generator</h1>
+        <a href="{{ url_for('logout') }}" class="ml-4 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+            Logout
+        </a>
     </div>
 
-    <script>
-        // Load existing clients
-        async function loadClients() {
-            const res = await fetch('/clients');
-            const data = await res.json();
-            const select = document.getElementById('clientSelect');
-            select.innerHTML = '<option value="">Select Existing Client</option>';
-            for (const name in data) {
-                const opt = document.createElement('option');
-                opt.value = name;
-                opt.textContent = name;
-                select.appendChild(opt);
-            }
-        }
-        loadClients();
+    <!-- Client Section -->
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold mb-2">Client Details</h2>
+        <select id="clientSelect" class="border rounded px-3 py-2 w-full mb-3">
+            <option value="">Select Existing Client</option>
+        </select>
+        <input type="text" id="client_name" placeholder="Client Name" class="border rounded px-3 py-2 w-full mb-2">
+        <input type="text" id="client_address1" placeholder="Address Line 1" class="border rounded px-3 py-2 w-full mb-2">
+        <input type="text" id="client_address2" placeholder="Address Line 2" class="border rounded px-3 py-2 w-full mb-2">
+        <input type="text" id="client_gstin" placeholder="GSTIN" class="border rounded px-3 py-2 w-full">
+    </div>
 
-        document.getElementById('clientSelect').addEventListener('change', function() {
-            const name = this.value;
-            if (!name) return;
-            fetch('/clients')
+    <!-- Invoice Items Section -->
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold mb-2">Invoice Items</h2>
+        <table class="w-full border-collapse mb-2" id="itemsTable">
+            <thead>
+            <tr class="bg-gray-200">
+                <th class="border px-2 py-1 text-left">Particulars</th>
+                <th class="border px-2 py-1 text-left">HSN</th>
+                <th class="border px-2 py-1 text-right">Amount</th>
+                <th class="border px-2 py-1 text-center">Action</th>
+            </tr>
+            </thead>
+            <tbody id="itemsBody">
+            <tr>
+                <td><input type="text" class="border px-2 py-1 w-full particulars"></td>
+                <td><input type="text" class="border px-2 py-1 w-full hsn" value="998222"></td>
+                <td><input type="number" class="border px-2 py-1 w-full amount" value="0"></td>
+                <td class="text-center"><button type="button" onclick="removeRow(this)" class="text-red-500">Delete</button></td>
+            </tr>
+            </tbody>
+        </table>
+        <button type="button" onclick="addRow()" class="bg-blue-500 text-white px-3 py-1 rounded">Add Item</button>
+    </div>
+
+    <!-- Totals Section -->
+    <div class="mb-6 text-right">
+        <p>Sub Total: ₹ <span id="subTotal">0.00</span></p>
+        <p>IGST @18%: ₹ <span id="igst">0.00</span></p>
+        <p>CGST @9%: ₹ <span id="cgst">0.00</span></p>
+        <p>SGST @9%: ₹ <span id="sgst">0.00</span></p>
+        <p class="font-bold text-lg">Grand Total: ₹ <span id="grandTotal">0.00</span></p>
+    </div>
+
+    <div class="text-center mb-6">
+        <button id="generateBtn" class="bg-green-500 text-white px-6 py-2 rounded font-semibold">Generate Invoice PDF</button>
+    </div>
+
+    <!-- Previous Invoices Section -->
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold mb-2">Download Previous Invoices</h2>
+        <select id="oldInvoices" class="border rounded px-3 py-2 w-full mb-2"></select>
+        <button onclick="downloadInvoice()" class="bg-purple-500 text-white px-4 py-2 rounded">Download Selected Invoice</button>
+    </div>
+</div>
+
+<script>
+    // Load existing clients
+    async function loadClients() {
+        const res = await fetch('/clients');
+        const data = await res.json();
+        const select = document.getElementById('clientSelect');
+        select.innerHTML = '<option value="">Select Existing Client</option>';
+        for (const name in data) {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+        }
+    }
+    loadClients();
+
+    document.getElementById('clientSelect').addEventListener('change', function() {
+        const name = this.value;
+        if (!name) return;
+        fetch('/clients')
             .then(res => res.json())
             .then(data => {
                 const client = data[name];
@@ -89,86 +103,111 @@
                 document.getElementById('client_address2').value = client.address2;
                 document.getElementById('client_gstin').value = client.gstin;
             });
-        });
+    });
 
-        // Add/remove item rows
-        function addRow() {
-            const tbody = document.getElementById('itemsBody');
-            const row = document.createElement('tr');
-            row.innerHTML = `
+    // Add/remove item rows
+    function addRow() {
+        const tbody = document.getElementById('itemsBody');
+        const row = document.createElement('tr');
+        row.innerHTML = `
                 <td><input type="text" class="border px-2 py-1 w-full particulars"></td>
                 <td><input type="text" class="border px-2 py-1 w-full hsn" value="998222"></td>
                 <td><input type="number" class="border px-2 py-1 w-full amount" value="0"></td>
                 <td class="text-center"><button type="button" onclick="removeRow(this)" class="text-red-500">Delete</button></td>
             `;
-            tbody.appendChild(row);
+        tbody.appendChild(row);
+    }
+
+    function removeRow(btn) {
+        btn.closest('tr').remove();
+        calculateTotals();
+    }
+
+    // Calculate totals
+    function calculateTotals() {
+        const amounts = document.querySelectorAll('.amount');
+        let subTotal = 0;
+        amounts.forEach(a => subTotal += parseFloat(a.value || 0));
+        const gstRate = 0.18;
+        const myStateCode = '09';
+        const clientGST = document.getElementById('client_gstin').value || '';
+        let igst = 0, cgst = 0, sgst = 0;
+        if (clientGST.startsWith(myStateCode)) {
+            cgst = subTotal * 0.09;
+            sgst = subTotal * 0.09;
+        } else {
+            igst = subTotal * gstRate;
         }
+        const grandTotal = subTotal + igst + cgst + sgst;
 
-        function removeRow(btn) {
-            btn.closest('tr').remove();
-            calculateTotals();
-        }
+        document.getElementById('subTotal').textContent = subTotal.toFixed(2);
+        document.getElementById('igst').textContent = igst.toFixed(2);
+        document.getElementById('cgst').textContent = cgst.toFixed(2);
+        document.getElementById('sgst').textContent = sgst.toFixed(2);
+        document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+    }
 
-        // Calculate totals
-        function calculateTotals() {
-            const amounts = document.querySelectorAll('.amount');
-            let subTotal = 0;
-            amounts.forEach(a => subTotal += parseFloat(a.value || 0));
-            const gstRate = 0.18;
-            const myStateCode = '09';
-            const clientGST = document.getElementById('client_gstin').value || '';
-            let igst = 0, cgst = 0, sgst = 0;
-            if (clientGST.startsWith(myStateCode)) {
-                cgst = subTotal * 0.09;
-                sgst = subTotal * 0.09;
-            } else {
-                igst = subTotal * gstRate;
-            }
-            const grandTotal = subTotal + igst + cgst + sgst;
+    document.getElementById('itemsBody').addEventListener('input', calculateTotals);
+    document.getElementById('client_gstin').addEventListener('input', calculateTotals);
 
-            document.getElementById('subTotal').textContent = subTotal.toFixed(2);
-            document.getElementById('igst').textContent = igst.toFixed(2);
-            document.getElementById('cgst').textContent = cgst.toFixed(2);
-            document.getElementById('sgst').textContent = sgst.toFixed(2);
-            document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
-        }
+    // Generate PDF
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+        const items = document.querySelectorAll('#itemsBody tr');
+        if (!items.length) return alert('Add at least one item');
 
-        document.getElementById('itemsBody').addEventListener('input', calculateTotals);
-        document.getElementById('client_gstin').addEventListener('input', calculateTotals);
-
-        // Generate PDF
-        document.getElementById('generateBtn').addEventListener('click', async () => {
-            const items = document.querySelectorAll('#itemsBody tr');
-            if (!items.length) return alert('Add at least one item');
-
-            let totalAmount = 0;
-            items.forEach(tr => {
-                totalAmount += parseFloat(tr.querySelector('.amount').value || 0);
-            });
-
-            const data = {
-                client_name: document.getElementById('client_name').value,
-                client_address1: document.getElementById('client_address1').value,
-                client_address2: document.getElementById('client_address2').value,
-                client_gstin: document.getElementById('client_gstin').value,
-                particulars: Array.from(items).map(tr => tr.querySelector('.particulars').value).join('\n'),
-                amount: totalAmount
-            };
-
-            const res = await fetch('/generate-invoice', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            });
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Invoice.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+        let totalAmount = 0;
+        items.forEach(tr => {
+            totalAmount += parseFloat(tr.querySelector('.amount').value || 0);
         });
-    </script>
+
+        const data = {
+            client_name: document.getElementById('client_name').value,
+            client_address1: document.getElementById('client_address1').value,
+            client_address2: document.getElementById('client_address2').value,
+            client_gstin: document.getElementById('client_gstin').value,
+            particulars: Array.from(items).map(tr => tr.querySelector('.particulars').value).join('\n'),
+            amount: totalAmount
+        };
+
+        const res = await fetch('/generate-invoice', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Invoice.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        // Reload previous invoices dropdown
+        loadOldInvoices();
+    });
+
+    // ---------------- Previous Invoices ----------------
+    async function loadOldInvoices() {
+        const res = await fetch('/invoices-list');
+        const invoices = await res.json();
+        const select = document.getElementById('oldInvoices');
+        select.innerHTML = '<option value="">Select Invoice</option>';
+        invoices.forEach(inv => {
+            const opt = document.createElement('option');
+            opt.value = inv.bill_no;
+            opt.textContent = `${inv.bill_no} - ${inv.client_name} - ₹${inv.grand_total.toFixed(2)}`;
+            select.appendChild(opt);
+        });
+    }
+    loadOldInvoices();
+
+    function downloadInvoice() {
+        const billNo = document.getElementById('oldInvoices').value;
+        if (!billNo) return alert('Select a previous invoice');
+        const encodedBillNo = encodeURIComponent(billNo);
+        window.location.href = `/download-invoice/${encodedBillNo}`;
+    }
+</script>
 </body>
 </html>
