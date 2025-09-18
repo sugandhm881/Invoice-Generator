@@ -1,4 +1,4 @@
-Flask
-Flask-Login
-python-dotenv
-fpdf
+Flask==2.3.6
+Flask-Login==0.6.3
+python-dotenv==1.0.1
+fpdf==1.7.2
