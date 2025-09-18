@@ -3,7 +3,7 @@ import os
 import logging
 from datetime import date
 from fpdf import FPDF
-from flask import Flask, request, send_file, send_from_directory
+from flask import Flask, request, send_file, redirect, url_for, session, render_template
 from flask_cors import CORS
 import io
 
@@ -11,18 +11,17 @@ import io
 CLIENTS_FILE = "clients.json"
 INVOICES_FILE = "invoices.json"
 INVOICE_COUNTER_FILE = "invoice_counter.json"
-SIGNATURE_IMAGE = r"S:\Invoice Generate\Signatory.jpg"
+SIGNATURE_IMAGE = r"Signatory.jpg"
 CALIBRI_FONT_PATH = "CALIBRI.TTF"  # font in project folder
 
-# ------------------ LOGGING ------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()]
-)
-
-app = Flask(__name__, static_folder='.')
+SECRET_USERNAME = "sugandhm881@gmail.com"
+SECRET_PASSWORD = "Avkash@1997"
+app = Flask(__name__)
+app.secret_key = "YourSecretKey123=Kalkibaathai"
 CORS(app)
+
+# ------------------ LOGGING ------------------
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", handlers=[logging.StreamHandler()])
 
 # ------------------ Helpers ------------------
 def load_json(filename, default):
@@ -101,13 +100,10 @@ def convert_to_words(number):
 def generate_pdf(invoice_data):
     pdf = FPDF()
     pdf.add_page()
-
-    # Register Calibri
     pdf.add_font("Calibri", "", CALIBRI_FONT_PATH, uni=True)
     pdf.add_font("Calibri", "B", CALIBRI_FONT_PATH, uni=True)
 
     pdf.set_font("Calibri", "B", 22)
-
     margin = 15
     page_width = pdf.w - 2 * margin
 
@@ -116,12 +112,8 @@ def generate_pdf(invoice_data):
     pdf.set_font("Calibri", "B", 14)
     pdf.cell(page_width, 8, "Tax Invoice", ln=True, align='C')
     pdf.set_font("Calibri", "", 10)
-    pdf.cell(page_width, 5,
-             "H.No 3A Shri Krishana Vatika, Sudamapuri, Vijaynagar, Ghaziabad, Uttar Pradesh - 201001",
-             ln=True, align='C')
-    pdf.cell(page_width, 5,
-             "Phone: +91-8651537856 | E-mail: skpa.avkashmishra@gmail.com",
-             ln=True, align='C')
+    pdf.cell(page_width, 5, "H.No 3A Shri Krishana Vatika, Sudamapuri, Vijaynagar, Ghaziabad, Uttar Pradesh - 201001", ln=True, align='C')
+    pdf.cell(page_width, 5, "Phone: +91-8651537856 | E-mail: skpa.avkashmishra@gmail.com", ln=True, align='C')
     pdf.ln(5)
     pdf.line(margin, pdf.get_y(), pdf.w - margin, pdf.get_y())
 
@@ -157,35 +149,34 @@ def generate_pdf(invoice_data):
 
     # Table data
     pdf.set_font("Calibri", "", 10)
-    line_height = 5
-    pdf.multi_cell(130, line_height, invoice_data['particulars'], border=1)
-    y_start = pdf.get_y() - line_height
+    pdf.multi_cell(130, 5, invoice_data['particulars'], border=1)
+    y_start = pdf.get_y() - 5
     pdf.set_xy(145, y_start)
-    pdf.cell(20, line_height, "998222", border=1, align='C')
-    pdf.cell(35, line_height, f"{invoice_data['amount']:.2f}", border=1, align='R')
-    pdf.ln(10)
+    pdf.cell(20, 10, "998222", border=1, align='C')
+    pdf.cell(35, 10, f"{invoice_data['amount']:.2f}", border=1, align='R')
+    pdf.ln(20)
 
-    # Totals aligned under headers
+    # Totals (aligned with table header)
+    pdf.set_x(145)
     pdf.set_font("Calibri", "B", 10)
-    pdf.set_x(145)
-    pdf.cell(20, line_height, "Sub Total", border=1)
-    pdf.cell(35, line_height, f"{invoice_data['sub_total']:.2f}", border=1, align='R')
+    pdf.cell(20, 5, "Sub Total", border=1)
+    pdf.cell(35, 5, f"{invoice_data['sub_total']:.2f}", border=1, align='R')
     pdf.ln()
     pdf.set_x(145)
-    pdf.cell(20, line_height, "IGST @18%", border=1)
-    pdf.cell(35, line_height, f"{invoice_data['igst']:.2f}", border=1, align='R')
+    pdf.cell(20, 5, "IGST @18%", border=1)
+    pdf.cell(35, 5, f"{invoice_data['igst']:.2f}", border=1, align='R')
     pdf.ln()
     pdf.set_x(145)
-    pdf.cell(20, line_height, "CGST @9%", border=1)
-    pdf.cell(35, line_height, f"{invoice_data['cgst']:.2f}", border=1, align='R')
+    pdf.cell(20, 5, "CGST @9%", border=1)
+    pdf.cell(35, 5, f"{invoice_data['cgst']:.2f}", border=1, align='R')
     pdf.ln()
     pdf.set_x(145)
-    pdf.cell(20, line_height, "SGST @9%", border=1)
-    pdf.cell(35, line_height, f"{invoice_data['sgst']:.2f}", border=1, align='R')
+    pdf.cell(20, 5, "SGST @9%", border=1)
+    pdf.cell(35, 5, f"{invoice_data['sgst']:.2f}", border=1, align='R')
     pdf.ln()
     pdf.set_x(145)
-    pdf.cell(20, line_height, "Grand Total", border=1)
-    pdf.cell(35, line_height, f"{invoice_data['grand_total']:.2f}", border=1, align='R')
+    pdf.cell(20, 5, "Grand Total", border=1)
+    pdf.cell(35, 5, f"{invoice_data['grand_total']:.2f}", border=1, align='R')
     pdf.ln(15)
 
     # Amount in words & bank details
@@ -199,7 +190,6 @@ def generate_pdf(invoice_data):
     pdf.set_font("Calibri", "B", 10)
     pdf.cell(0, 5, "For MB COLLECTION", ln=True, align='R')
 
-    # Signature
     if os.path.exists(SIGNATURE_IMAGE):
         pdf.image(SIGNATURE_IMAGE, x=150, y=pdf.get_y(), w=40)
     pdf.ln(20)
@@ -208,12 +198,34 @@ def generate_pdf(invoice_data):
     return io.BytesIO(pdf_bytes)
 
 # ------------------ Routes ------------------
-@app.route('/')
-def index():
-    return send_from_directory('.', 'index.html')
+@app.route("/", methods=["GET"])
+def home():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    return send_file("index.html")
 
-@app.route('/generate-invoice', methods=['POST'])
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if username == SECRET_USERNAME and password == SECRET_PASSWORD:
+            session["logged_in"] = True
+            return redirect(url_for("home"))
+        else:
+            error = "Invalid username or password"
+    return render_template("login.html", error=error)
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
+
+@app.route("/generate-invoice", methods=["POST"])
 def handle_invoice():
+    if not session.get("logged_in"):
+        return {"error": "Unauthorized"}, 401
     try:
         data = request.json
         client_name = data.get('client_name')
@@ -243,7 +255,7 @@ def handle_invoice():
         invoice_date_str = date.today().strftime('%d-%b-%Y')
         my_gstin = "09ENEPM4809Q1Z8"
 
-        # GST calculation
+        # GST
         sub_total = amount
         igst, cgst, sgst = 0, 0, 0
         if client_gstin[:2] == my_gstin[:2]:
@@ -270,7 +282,6 @@ def handle_invoice():
             "grand_total": grand_total
         }
 
-        # Save invoice
         invoices = load_invoices()
         invoices.append(invoice_data)
         save_invoices(invoices)
@@ -285,6 +296,8 @@ def handle_invoice():
 
 @app.route('/clients', methods=['GET'])
 def get_clients():
+    if not session.get("logged_in"):
+        return {"error": "Unauthorized"}, 401
     return load_clients()
 
 # ------------------ Run ------------------
