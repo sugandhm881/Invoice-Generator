@@ -6,41 +6,35 @@ import logging
 from datetime import date
 from urllib.parse import unquote
 
-from flask import (
-    Flask, request, send_file, send_from_directory, jsonify,
-    render_template, redirect, url_for
-)
-from flask_login import (
-    LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-)
+from flask import Flask, request, send_file, jsonify, render_template, redirect, url_for
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from dotenv import load_dotenv
 from fpdf import FPDF
 
-# ------------------ Load .env ------------------
-load_dotenv()
+# ------------------ BASE DIR ------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ------------------ CONFIG ------------------
-CLIENTS_FILE = "clients.json"
-INVOICES_FILE = "invoices.json"
-INVOICE_COUNTER_FILE = "invoice_counter.json"
-SIGNATURE_IMAGE = r"Signatory.jpg"
-CALIBRI_FONT_PATH = "CALIBRI.TTF"  # ensure this file exists or change to a built-in font
-INVOICE_PDF_FOLDER = "generated_invoices"
+CLIENTS_FILE = os.path.join(BASE_DIR, "clients.json")
+INVOICES_FILE = os.path.join(BASE_DIR, "invoices.json")
+INVOICE_COUNTER_FILE = os.path.join(BASE_DIR, "invoice_counter.json")
+SIGNATURE_IMAGE = os.path.join(BASE_DIR, "Signatory.jpg")
+CALIBRI_FONT_PATH = os.path.join(BASE_DIR, "CALIBRI.TTF")
+INVOICE_PDF_FOLDER = os.path.join(BASE_DIR, "generated_invoices")
+TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
+
 os.makedirs(INVOICE_PDF_FOLDER, exist_ok=True)
 
+# ------------------ LOAD ENV ------------------
+load_dotenv()
+
 # ------------------ FLASK APP ------------------
-app = Flask(__name__, static_folder='.', static_url_path='')  # static files served from project root
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=os.path.join(BASE_DIR, "static"))
 app.secret_key = os.getenv("SECRET_KEY", "change_this_secret")
 
 # ------------------ LOGGING ------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()]
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-
-# ----- Flask-Login Setup -----
+# ------------------ FLASK-LOGIN ------------------
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
@@ -49,7 +43,6 @@ class User(UserMixin):
     def __init__(self, id):
         self.id = id
 
-# Single user credentials (from .env or default)
 AUTH_USERNAME = os.getenv("LOGIN_USER", "admin")
 AUTH_PASSWORD = os.getenv("LOGIN_PASS", "password")
 
@@ -57,19 +50,19 @@ AUTH_PASSWORD = os.getenv("LOGIN_PASS", "password")
 def load_user(user_id):
     return User(user_id)
 
-# ------------------ Helpers ------------------
-def load_json(filename, default):
-    if os.path.exists(filename):
+# ------------------ HELPERS ------------------
+def load_json(file_path, default):
+    if os.path.exists(file_path):
         try:
-            with open(filename, "r", encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            logging.error(f"Error reading {filename}: {e}")
+            logging.error(f"Error reading {file_path}: {e}")
             return default
     return default
 
-def save_json(data, filename):
-    with open(filename, "w", encoding="utf-8") as f:
+def save_json(data, file_path):
+    with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 def load_clients():
@@ -84,59 +77,37 @@ def load_invoices():
 def save_invoices(invoices):
     save_json(invoices, INVOICES_FILE)
 
-# ------------------ Number to words (Indian) ------------------
+# ------------------ NUMBER TO WORDS ------------------
 def convert_to_words(number):
     units = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
              "Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"]
     tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"]
-
     def two_digit(n):
-        if n < 20:
-            return units[n]
-        else:
-            return tens[n//10] + (" " + units[n%10] if n%10 else "")
-
+        return units[n] if n < 20 else tens[n//10] + (" " + units[n%10] if n%10 else "")
     def three_digit(n):
         s = ""
         if n >= 100:
             s += units[n//100] + " Hundred"
-            if n % 100:
-                s += " "
-        if n % 100:
-            s += two_digit(n%100)
+            if n % 100: s += " "
+        if n % 100: s += two_digit(n%100)
         return s
 
     n = int(abs(number))
     paise = round((abs(number) - n) * 100)
-
-    crore = n // 10000000
-    n %= 10000000
-    lakh = n // 100000
-    n %= 100000
-    thousand = n // 1000
-    n %= 1000
+    crore = n // 10000000; n %= 10000000
+    lakh = n // 100000; n %= 100000
+    thousand = n // 1000; n %= 1000
     hundred = n
-
     parts = []
-    if crore:
-        parts.append(three_digit(crore) + " Crore")
-    if lakh:
-        parts.append(three_digit(lakh) + " Lakh")
-    if thousand:
-        parts.append(three_digit(thousand) + " Thousand")
-    if hundred:
-        parts.append(three_digit(hundred))
-
-    if not parts:
-        words = "Zero"
-    else:
-        words = " ".join(parts)
-
-    if paise:
-        words += f" and {two_digit(paise)} Paise"
-
+    if crore: parts.append(three_digit(crore) + " Crore")
+    if lakh: parts.append(three_digit(lakh) + " Lakh")
+    if thousand: parts.append(three_digit(thousand) + " Thousand")
+    if hundred: parts.append(three_digit(hundred))
+    words = " ".join(parts) if parts else "Zero"
+    if paise: words += f" and {two_digit(paise)} Paise"
     return words + " Only"
 
+# ------------------ PDF GENERATION ------------------
 def generate_pdf(invoice_data):
     pdf = FPDF()
     pdf.add_page()
@@ -230,26 +201,23 @@ def generate_pdf(invoice_data):
     pdf_bytes = pdf.output(dest="S").encode("latin-1")
     return io.BytesIO(pdf_bytes)
 
-# ----- Routes -----
 
-# Root route: redirect to login if not authenticated
+# ------------------ ROUTES ------------------
+
 @app.route("/", methods=["GET"])
 def root():
     if current_user.is_authenticated:
         return redirect(url_for("home"))
     return redirect(url_for("login"))
 
-# Login page & POST action
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET","POST"])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for("home"))
-
+    if current_user.is_authenticated: return redirect(url_for("home"))
     error = None
-    if request.method == "POST":
-        username = request.form.get("username", "")
-        password = request.form.get("password", "")
-        if username == AUTH_USERNAME and password == AUTH_PASSWORD:
+    if request.method=="POST":
+        username = request.form.get("username","")
+        password = request.form.get("password","")
+        if username==AUTH_USERNAME and password==AUTH_PASSWORD:
             user = User(id=username)
             login_user(user)
             return redirect(url_for("home"))
@@ -257,148 +225,83 @@ def login():
             error = "Invalid username or password"
     return render_template("login.html", error=error)
 
-# Protected Home page
 @app.route("/home", methods=["GET"])
 @login_required
 def home():
     return render_template("index.html")
 
-# Logout
-@app.route("/logout", methods=["GET"])
+@app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("login"))
 
-# Home (protected). Serves your existing index.html file — keep it where it is.
-@app.route("/", methods=["GET"])
-@login_required
-def home():
-    # index.html is expected to be in project root (same location as app.py)
-    # we use send_file so you don't need to move existing index.html
-    return render_template("index.html")
+# ------------------ INVOICE ROUTES ------------------
 
-# Generate invoice (protected)
 @app.route("/generate-invoice", methods=["POST"])
 @login_required
 def handle_invoice():
     try:
         data = request.json or {}
-        client_name = data.get('client_name', '').strip()
-        client_address1 = data.get('client_address1', '').strip()
-        client_address2 = data.get('client_address2', '').strip()
-        client_gstin = data.get('client_gstin', '').strip()
-        particulars = data.get('particulars', '').strip()
-        # support either single amount or per-item amounts list
-        amounts = data.get('amounts')
-        if amounts and isinstance(amounts, list):
-            amount = float(sum([float(x) for x in amounts]))
-        else:
-            amount = float(data.get('amount', 0))
-
-        # Save client (if new)
+        client_name = data.get('client_name','').strip()
+        client_address1 = data.get('client_address1','').strip()
+        client_address2 = data.get('client_address2','').strip()
+        client_gstin = data.get('client_gstin','').strip()
+        particulars = data.get('particulars','').strip()
+        amounts = data.get("amounts")
+        if amounts and isinstance(amounts,list): amount = float(sum([float(x) for x in amounts]))
+        else: amount = float(data.get("amount",0))
+        # Save client
         clients = load_clients()
         if client_name and client_name not in clients:
-            clients[client_name] = {
-                'address1': client_address1,
-                'address2': client_address2,
-                'gstin': client_gstin
-            }
+            clients[client_name] = {"address1":client_address1,"address2":client_address2,"gstin":client_gstin}
             save_clients(clients)
-
-        # Invoice counter (persisted)
-        counter_data = load_json(INVOICE_COUNTER_FILE, {"counter": 0})
-        counter = counter_data.get('counter', 0) + 1
-        counter_data['counter'] = counter
+        # Invoice counter
+        counter_data = load_json(INVOICE_COUNTER_FILE, {"counter":0})
+        counter = counter_data.get("counter",0)+1
+        counter_data['counter']=counter
         save_json(counter_data, INVOICE_COUNTER_FILE)
         bill_no = f"INV/{counter:04d}/25-26"
-
         invoice_date_str = date.today().strftime('%d-%b-%Y')
         my_gstin = "09ENEPM4809Q1Z8"
-
-        # GST calculation
-        sub_total = round(amount, 2)
-        igst = cgst = sgst = 0.0
-        if client_gstin and client_gstin[:2] == my_gstin[:2]:
-            cgst = round(sub_total * 0.09, 2)
-            sgst = round(sub_total * 0.09, 2)
-        else:
-            igst = round(sub_total * 0.18, 2)
-        grand_total = round(sub_total + igst + cgst + sgst, 2)
-
-        invoice_data = {
-            "bill_no": bill_no,
-            "invoice_date": invoice_date_str,
-            "client_name": client_name,
-            "client_address1": client_address1,
-            "client_address2": client_address2,
-            "client_gstin": client_gstin,
-            "my_gstin": my_gstin,
-            "particulars": particulars,
-            # include both flattened amount and optional per-item amounts
-            "amount": sub_total,
-            "amounts": amounts if isinstance(amounts, list) else None,
-            "sub_total": sub_total,
-            "igst": igst,
-            "cgst": cgst,
-            "sgst": sgst,
-            "grand_total": grand_total
-        }
-
-        invoices = load_invoices()
-        invoices.append(invoice_data)
-        save_invoices(invoices)
-
+        sub_total = round(amount,2); igst=cgst=sgst=0.0
+        if client_gstin and client_gstin[:2]==my_gstin[:2]: cgst=round(sub_total*0.09,2); sgst=round(sub_total*0.09,2)
+        else: igst=round(sub_total*0.18,2)
+        grand_total = round(sub_total+igst+cgst+sgst,2)
+        invoice_data = {"bill_no":bill_no,"invoice_date":invoice_date_str,"client_name":client_name,"client_address1":client_address1,"client_address2":client_address2,"client_gstin":client_gstin,"my_gstin":my_gstin,"particulars":particulars,"amount":sub_total,"amounts":amounts if isinstance(amounts,list) else None,"sub_total":sub_total,"igst":igst,"cgst":cgst,"sgst":sgst,"grand_total":grand_total}
+        invoices = load_invoices(); invoices.append(invoice_data); save_invoices(invoices)
         pdf_file = generate_pdf(invoice_data)
         download_name = f"Invoice_{bill_no.replace('/','_')}.pdf"
-        # Save generated pdf to disk for reference (optional)
-        try:
-            path = os.path.join(INVOICE_PDF_FOLDER, download_name)
-            with open(path, "wb") as f:
-                f.write(pdf_file.getbuffer())
-            pdf_file.seek(0)
-        except Exception as e:
-            logging.warning(f"Could not save generated PDF to disk: {e}")
-
-        # Return PDF with correct filename in Content-Disposition
-        return send_file(pdf_file, mimetype="application/pdf", as_attachment=True, download_name=download_name)
-
+        path = os.path.join(INVOICE_PDF_FOLDER, download_name)
+        with open(path,"wb") as f: f.write(pdf_file.getbuffer()); pdf_file.seek(0)
+        return send_file(pdf_file,mimetype="application/pdf",as_attachment=True,download_name=download_name)
     except Exception as e:
         logging.error(f"Error generating invoice: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}),500
 
-# Clients list (protected)
 @app.route('/clients', methods=['GET'])
 @login_required
 def get_clients_route():
     return jsonify(load_clients())
 
-# Invoices list for dropdown (protected)
 @app.route('/invoices-list', methods=['GET'])
 @login_required
 def invoices_list_route():
     invoices = load_invoices()
-    brief = [{
-        "bill_no": inv["bill_no"],
-        "date": inv.get("invoice_date"),
-        "grand_total": inv.get("grand_total"),
-        "client_name": inv.get("client_name")  # <-- add this
-    } for inv in invoices]
+    brief = [{"bill_no":i["bill_no"],"date":i.get("invoice_date"),"grand_total":i.get("grand_total"),"client_name":i.get("client_name")} for i in invoices]
     return jsonify(brief)
 
-# Download previous invoice by bill_no (protected) - allow slashes via path:
 @app.route('/download-invoice/<path:bill_no>', methods=['GET'])
 @login_required
 def download_invoice(bill_no):
     bill_no = unquote(bill_no)
     invoices = load_invoices()
-    invoice_data = next((inv for inv in invoices if inv['bill_no'] == bill_no), None)
-    if not invoice_data:
-        return jsonify({"error": "Invoice not found"}), 404
+    invoice_data = next((inv for inv in invoices if inv['bill_no']==bill_no),None)
+    if not invoice_data: return jsonify({"error":"Invoice not found"}),404
     pdf_file = generate_pdf(invoice_data)
     download_name = f"Invoice_{bill_no.replace('/','_')}.pdf"
-    return send_file(pdf_file, mimetype="application/pdf", as_attachment=True, download_name=download_name)
+    return send_file(pdf_file,mimetype="application/pdf",as_attachment=True,download_name=download_name)
 
-# ------------------ Run ------------------
+# ------------------ RUN ------------------
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT",5000)))

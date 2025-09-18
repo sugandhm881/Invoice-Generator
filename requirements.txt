@@ -1,3 +1,4 @@
-flask
-fpdf
+Flask
+Flask-Login
 python-dotenv
+fpdf
