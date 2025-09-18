@@ -5,119 +5,131 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
-<body class="bg-gray-100 font-sans p-6 md:p-10 flex items-center justify-center min-h-screen relative">
+<body class="bg-gray-100 font-sans p-6 md:p-10 flex items-center justify-center min-h-screen">
 
-    <div class="bg-white rounded-xl shadow-2xl p-8 md:p-12 w-full max-w-2xl transform transition-all hover:scale-[1.01] duration-300" id="main-content">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-6 text-center">Generate Invoice</h1>
-        <p class="text-center text-gray-500 mb-8">Fill in the details below to create your PDF invoice.</p>
+<!-- Login/Logout Buttons -->
+<div class="absolute top-4 right-4 space-x-2">
+    <button id="login-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 hidden">Login</button>
+    <button id="logout-btn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 hidden">Logout</button>
+</div>
 
-        <div class="mb-4">
-            <label for="client-list" class="block text-sm font-semibold text-gray-700 mb-1">Load Saved Client</label>
-            <select id="client-list" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
-                <option value="">-- Select a saved client --</option>
-            </select>
-        </div>
+<div id="content" class="bg-white rounded-xl shadow-2xl p-8 md:p-12 w-full max-w-2xl transform transition-all hover:scale-[1.01] duration-300">
+    <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-6 text-center">Generate Invoice</h1>
+    <p class="text-center text-gray-500 mb-8">Fill in the details below to create your PDF invoice.</p>
 
-        <form id="invoice-form" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="client_name" class="block text-sm font-semibold text-gray-700 mb-1">Client Name</label>
-                    <input type="text" id="client_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., Jane Doe Inc." required>
-                </div>
-                <div>
-                    <label for="client_address1" class="block text-sm font-semibold text-gray-700 mb-1">Address Line 1</label>
-                    <input type="text" id="client_address1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., 123 Main St" required>
-                </div>
-                <div>
-                    <label for="client_address2" class="block text-sm font-semibold text-gray-700 mb-1">Address Line 2</label>
-                    <input type="text" id="client_address2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., Anytown, State" required>
-                </div>
-                <div>
-                    <label for="client_gstin" class="block text-sm font-semibold text-gray-700 mb-1">Client GSTIN</label>
-                    <input type="text" id="client_gstin" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., 07AANPP1285F1ZI" required>
-                </div>
-            </div>
-
-            <div>
-                <label for="particulars" class="block text-sm font-semibold text-gray-700 mb-1">Particulars</label>
-                <textarea id="particulars" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="Describe the services rendered..." required></textarea>
-            </div>
-            
-            <div>
-                <label for="amount" class="block text-sm font-semibold text-gray-700 mb-1">Amount (₹)</label>
-                <input type="number" id="amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., 15000.00" required>
-            </div>
-            
-            <div class="flex justify-between space-x-4">
-                <button type="submit" class="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                    Generate Invoice
-                </button>
-            </div>
-        </form>
-
-        <div id="loading" class="hidden text-center mt-6 text-gray-600 font-medium">Generating PDF...</div>
+    <div class="mb-4">
+        <label for="client-list" class="block text-sm font-semibold text-gray-700 mb-1">Load Saved Client</label>
+        <select id="client-list" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
+            <option value="">-- Select a saved client --</option>
+        </select>
     </div>
 
-    <!-- Logout Button -->
-    <button id="logout-btn" class="hidden absolute top-5 right-5 px-4 py-2 bg-red-600 text-white rounded z-50">Logout</button>
+    <form id="invoice-form" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="client_name" class="block text-sm font-semibold text-gray-700 mb-1">Client Name</label>
+                <input type="text" id="client_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., Jane Doe Inc." required>
+            </div>
+            <div>
+                <label for="client_address1" class="block text-sm font-semibold text-gray-700 mb-1">Address Line 1</label>
+                <input type="text" id="client_address1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., 123 Main St" required>
+            </div>
+            <div>
+                <label for="client_address2" class="block text-sm font-semibold text-gray-700 mb-1">Address Line 2</label>
+                <input type="text" id="client_address2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., Anytown, State" required>
+            </div>
+            <div>
+                <label for="client_gstin" class="block text-sm font-semibold text-gray-700 mb-1">Client GSTIN</label>
+                <input type="text" id="client_gstin" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., 07AANPP1285F1ZI" required>
+            </div>
+        </div>
 
-    <!-- Netlify Identity Widget -->
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script>
-        const clientListSelect = document.getElementById('client-list');
-        const loadingDiv = document.getElementById('loading');
-        const mainContent = document.getElementById('main-content');
-        const logoutBtn = document.getElementById('logout-btn');
+        <div>
+            <label for="particulars" class="block text-sm font-semibold text-gray-700 mb-1">Particulars</label>
+            <textarea id="particulars" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="Describe the services rendered..." required></textarea>
+        </div>
+        
+        <div>
+            <label for="amount" class="block text-sm font-semibold text-gray-700 mb-1">Amount (₹)</label>
+            <input type="number" id="amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="e.g., 15000.00" required>
+        </div>
+        
+        <div class="flex justify-between space-x-4">
+            <button type="submit" class="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Generate Invoice
+            </button>
+        </div>
+    </form>
 
-        // Initialize Netlify Identity
-        const identity = netlifyIdentity.init();
+    <div id="loading" class="hidden text-center mt-6 text-gray-600 font-medium">Generating PDF...</div>
+</div>
 
-        identity.on('init', user => {
-            if (!user) {
-                identity.open(); // show login modal
-                mainContent.style.display = 'none';
-            } else {
-                mainContent.style.display = 'block';
-                logoutBtn.style.display = 'block';
-            }
+<script>
+    const API_URL = '/'; // Relative path for Netlify deployment
+
+    const clientListSelect = document.getElementById('client-list');
+    const loadingDiv = document.getElementById('loading');
+    const contentDiv = document.getElementById('content');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // Initialize Netlify Identity
+    if (window.netlifyIdentity) {
+        window.netlifyIdentity.init();
+
+        const user = window.netlifyIdentity.currentUser();
+        if (!user) {
+            contentDiv.style.display = 'none';
+            loginBtn.style.display = 'inline-block';
+        } else {
+            contentDiv.style.display = 'block';
+            logoutBtn.style.display = 'inline-block';
+        }
+
+        loginBtn.addEventListener('click', () => window.netlifyIdentity.open('login'));
+        logoutBtn.addEventListener('click', () => window.netlifyIdentity.logout());
+
+        window.netlifyIdentity.on('login', (user) => {
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+            contentDiv.style.display = 'block';
+            window.location.reload();
         });
 
-        identity.on('login', user => {
-            mainContent.style.display = 'block';
-            logoutBtn.style.display = 'block';
-            identity.close();
-        });
-
-        identity.on('logout', () => {
-            mainContent.style.display = 'none';
+        window.netlifyIdentity.on('logout', () => {
             logoutBtn.style.display = 'none';
-            identity.open();
+            loginBtn.style.display = 'inline-block';
+            contentDiv.style.display = 'none';
         });
+    }
 
-        logoutBtn.addEventListener('click', () => identity.logout());
+    async function loadClients() {
+        try {
+            const response = await fetch(`${API_URL}clients`);
+            const clients = await response.json();
+            
+            clientListSelect.innerHTML = '<option value="">-- Select a saved client --</option>';
 
-        // Fetch clients from backend
-        async function loadClients() {
-            try {
-                const response = await fetch('/clients');
-                const clients = await response.json();
-                clientListSelect.innerHTML = '<option value="">-- Select a saved client --</option>';
-                for (const name in clients) {
+            for (const name in clients) {
+                if (clients.hasOwnProperty(name)) {
                     const option = document.createElement('option');
                     option.value = name;
                     option.textContent = name;
                     clientListSelect.appendChild(option);
                 }
-            } catch (error) {
-                console.error('Failed to load clients:', error);
             }
+        } catch (error) {
+            console.error('Failed to load clients:', error);
         }
-
-        clientListSelect.addEventListener('change', async (e) => {
-            const clientName = e.target.value;
-            if (clientName) {
-                const response = await fetch('/clients');
+    }
+    
+    clientListSelect.addEventListener('change', async (e) => {
+        const clientName = e.target.value;
+        if (clientName) {
+            try {
+                const response = await fetch(`${API_URL}clients`);
                 const clients = await response.json();
                 const data = clients[clientName];
                 if (data) {
@@ -126,49 +138,52 @@
                     document.getElementById('client_address2').value = data.address2;
                     document.getElementById('client_gstin').value = data.gstin;
                 }
-            }
-        });
-
-        document.getElementById('invoice-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            loadingDiv.classList.remove('hidden');
-
-            const formData = {
-                client_name: document.getElementById('client_name').value,
-                client_address1: document.getElementById('client_address1').value,
-                client_address2: document.getElementById('client_address2').value,
-                client_gstin: document.getElementById('client_gstin').value,
-                particulars: document.getElementById('particulars').value,
-                amount: parseFloat(document.getElementById('amount').value)
-            };
-
-            try {
-                const response = await fetch('/generate-invoice', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                if (!response.ok) throw new Error('Server response was not ok');
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = response.headers.get('Content-Disposition').split('filename=')[1].replace(/\"/g, '');
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-
             } catch (error) {
-                console.error('Error generating invoice:', error);
-            } finally {
-                loadingDiv.classList.add('hidden');
+                console.error('Failed to load client details:', error);
             }
-        });
+        }
+    });
 
-        window.addEventListener('load', loadClients);
-    </script>
+    document.getElementById('invoice-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        loadingDiv.classList.remove('hidden');
+
+        const formData = {
+            client_name: document.getElementById('client_name').value,
+            client_address1: document.getElementById('client_address1').value,
+            client_address2: document.getElementById('client_address2').value,
+            client_gstin: document.getElementById('client_gstin').value,
+            particulars: document.getElementById('particulars').value,
+            amount: parseFloat(document.getElementById('amount').value)
+        };
+
+        try {
+            const response = await fetch(`${API_URL}generate-invoice`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) throw new Error('Server response was not ok');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = response.headers.get('Content-Disposition').split('filename=')[1].replace(/\"/g, '');
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('Error generating invoice:', error);
+        } finally {
+            loadingDiv.classList.add('hidden');
+        }
+    });
+
+    window.addEventListener('load', loadClients);
+</script>
 </body>
 </html>
