@@ -6,9 +6,9 @@
     <title>Invoice Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 font-sans p-6 md:p-10 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100 font-sans p-6 md:p-10 flex items-center justify-center min-h-screen relative">
 
-    <div class="bg-white rounded-xl shadow-2xl p-8 md:p-12 w-full max-w-2xl transform transition-all hover:scale-[1.01] duration-300">
+    <div class="bg-white rounded-xl shadow-2xl p-8 md:p-12 w-full max-w-2xl transform transition-all hover:scale-[1.01] duration-300" id="main-content">
         <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-6 text-center">Generate Invoice</h1>
         <p class="text-center text-gray-500 mb-8">Fill in the details below to create your PDF invoice.</p>
 
@@ -57,56 +57,78 @@
         </form>
 
         <div id="loading" class="hidden text-center mt-6 text-gray-600 font-medium">Generating PDF...</div>
-
     </div>
 
+    <!-- Logout Button -->
+    <button id="logout-btn" class="hidden absolute top-5 right-5 px-4 py-2 bg-red-600 text-white rounded z-50">Logout</button>
+
+    <!-- Netlify Identity Widget -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
         const clientListSelect = document.getElementById('client-list');
         const loadingDiv = document.getElementById('loading');
+        const mainContent = document.getElementById('main-content');
+        const logoutBtn = document.getElementById('logout-btn');
 
-        // Fetch and populate clients from the backend
+        // Initialize Netlify Identity
+        const identity = netlifyIdentity.init();
+
+        identity.on('init', user => {
+            if (!user) {
+                identity.open(); // show login modal
+                mainContent.style.display = 'none';
+            } else {
+                mainContent.style.display = 'block';
+                logoutBtn.style.display = 'block';
+            }
+        });
+
+        identity.on('login', user => {
+            mainContent.style.display = 'block';
+            logoutBtn.style.display = 'block';
+            identity.close();
+        });
+
+        identity.on('logout', () => {
+            mainContent.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            identity.open();
+        });
+
+        logoutBtn.addEventListener('click', () => identity.logout());
+
+        // Fetch clients from backend
         async function loadClients() {
             try {
-                const response = await fetch('/clients'); // ✅ relative path
+                const response = await fetch('/clients');
                 const clients = await response.json();
-                
-                // Clear existing options
                 clientListSelect.innerHTML = '<option value="">-- Select a saved client --</option>';
-
                 for (const name in clients) {
-                    if (clients.hasOwnProperty(name)) {
-                        const option = document.createElement('option');
-                        option.value = name;
-                        option.textContent = name;
-                        clientListSelect.appendChild(option);
-                    }
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    clientListSelect.appendChild(option);
                 }
             } catch (error) {
                 console.error('Failed to load clients:', error);
             }
         }
-        
-        // Populate form fields when a client is selected
+
         clientListSelect.addEventListener('change', async (e) => {
             const clientName = e.target.value;
             if (clientName) {
-                try {
-                    const response = await fetch('/clients'); // ✅ relative path
-                    const clients = await response.json();
-                    const data = clients[clientName];
-                    if (data) {
-                        document.getElementById('client_name').value = clientName;
-                        document.getElementById('client_address1').value = data.address1;
-                        document.getElementById('client_address2').value = data.address2;
-                        document.getElementById('client_gstin').value = data.gstin;
-                    }
-                } catch (error) {
-                    console.error('Failed to load client details:', error);
+                const response = await fetch('/clients');
+                const clients = await response.json();
+                const data = clients[clientName];
+                if (data) {
+                    document.getElementById('client_name').value = clientName;
+                    document.getElementById('client_address1').value = data.address1;
+                    document.getElementById('client_address2').value = data.address2;
+                    document.getElementById('client_gstin').value = data.gstin;
                 }
             }
         });
 
-        // Handle form submission and send data to the backend
         document.getElementById('invoice-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             loadingDiv.classList.remove('hidden');
@@ -121,19 +143,14 @@
             };
 
             try {
-                const response = await fetch('/generate-invoice', { // ✅ relative path
+                const response = await fetch('/generate-invoice', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
 
-                if (!response.ok) {
-                    throw new Error('Server response was not ok');
-                }
+                if (!response.ok) throw new Error('Server response was not ok');
 
-                // Get the PDF blob and create a download link
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -151,7 +168,6 @@
             }
         });
 
-        // Load clients on page load
         window.addEventListener('load', loadClients);
     </script>
 </body>
