@@ -126,6 +126,8 @@ def generate_pdf(invoice_data):
     page_width = pdf.w - 2 * margin
 
     # Header
+    if os.path.exists(os.path.join(BASE_DIR, "static", "mb-logo.png")):
+        pdf.image(os.path.join(BASE_DIR, "static", "mb-logo.png"), x=15, y=8, w=30)  # Adjust width if needed
     pdf.set_font("Calibri", "B", 22)
     pdf.set_text_color(255, 165, 0)  # Orange
     pdf.cell(page_width, 10, "MB COLLECTION", ln=True, align='C')

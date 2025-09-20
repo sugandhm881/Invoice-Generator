@@ -284,7 +284,7 @@ async function loadOldInvoices() {
     document.addEventListener("DOMContentLoaded", () => {
         loadOldInvoices();
         // Refresh every 5 seconds
-        setInterval(loadOldInvoices, 5000);
+        setInterval(loadOldInvoices, 60000);
     });
 
     function downloadInvoice() {
