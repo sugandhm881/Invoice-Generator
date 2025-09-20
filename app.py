@@ -17,6 +17,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CLIENTS_FILE = os.path.join(BASE_DIR, "clients.json")
 INVOICES_FILE = os.path.join(BASE_DIR, "invoices.json")
 INVOICE_COUNTER_FILE = os.path.join(BASE_DIR, "invoice_counter.json")
+PARTICULARS_FILE = os.path.join(BASE_DIR, "particulars.json")
 SIGNATURE_IMAGE = os.path.join(BASE_DIR, "Signatory.jpg")
 CALIBRI_FONT_PATH = os.path.join(BASE_DIR, "CALIBRI.TTF")
 INVOICE_PDF_FOLDER = os.path.join(BASE_DIR, "generated_invoices")
@@ -76,6 +77,13 @@ def load_invoices():
 
 def save_invoices(invoices):
     save_json(invoices, INVOICES_FILE)
+    
+def load_particulars():
+    return load_json(PARTICULARS_FILE, {})
+
+def save_particulars(particulars):
+    save_json(particulars, PARTICULARS_FILE)
+
 
 # ------------------ NUMBER TO WORDS ------------------
 def convert_to_words(number):
@@ -247,7 +255,11 @@ def handle_invoice():
         client_address1 = data.get('client_address1','').strip()
         client_address2 = data.get('client_address2','').strip()
         client_gstin = data.get('client_gstin','').strip()
-        particulars = data.get('particulars','').strip()
+        particulars = data.get('particulars', [])
+        if isinstance(particulars, list):
+            particulars = ', '.join([str(p).strip() for p in particulars])
+        else:
+            particulars = str(particulars).strip()    
         amounts = data.get("amounts")
         if amounts and isinstance(amounts,list): amount = float(sum([float(x) for x in amounts]))
         else: amount = float(data.get("amount",0))
