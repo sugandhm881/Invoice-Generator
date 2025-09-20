@@ -264,24 +264,35 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
 
 // Load previous invoices
 async function loadOldInvoices() {
-    const res = await fetch('/invoices-list');
-    const invoices = await res.json();
-    const select = document.getElementById('oldInvoices');
-    select.innerHTML = '<option value="">Select Invoice</option>';
-    invoices.forEach(inv => {
-        const opt = document.createElement('option');
-        opt.value = inv.bill_no;
-        opt.textContent = `${inv.bill_no} - ${inv.client_name} - ₹${inv.grand_total.toFixed(2)}`;
-        select.appendChild(opt);
-    });
-}
+        try {
+            const res = await fetch('/invoices-list');
+            const invoices = await res.json();
+            const select = document.getElementById('oldInvoices');
+            select.innerHTML = '<option value="">Select Invoice</option>';
+            invoices.forEach(inv => {
+                const opt = document.createElement('option');
+                opt.value = inv.bill_no;
+                opt.textContent = `${inv.bill_no} - ${inv.client_name} - ₹${inv.grand_total.toFixed(2)}`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error("Error loading previous invoices:", err);
+        }
+    }
 
-function downloadInvoice() {
-    const billNo = document.getElementById('oldInvoices').value;
-    if (!billNo) return alert('Select a previous invoice');
-    const encodedBillNo = encodeURIComponent(billNo);
-    window.location.href = `/download-invoice/${encodedBillNo}`;
-}
+    // Initial load on page ready
+    document.addEventListener("DOMContentLoaded", () => {
+        loadOldInvoices();
+        // Refresh every 5 seconds
+        setInterval(loadOldInvoices, 5000);
+    });
+
+    function downloadInvoice() {
+        const billNo = document.getElementById('oldInvoices').value;
+        if (!billNo) return alert('Select a previous invoice');
+        const encodedBillNo = encodeURIComponent(billNo);
+        window.location.href = `/download-invoice/${encodedBillNo}`;
+    }
 
 // Initialize
 loadClients();

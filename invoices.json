@@ -15,5 +15,22 @@
         "cgst": 0.0,
         "sgst": 0.0,
         "grand_total": 177.0
+    },
+    {
+        "bill_no": "INV/0038/25-26",
+        "invoice_date": "20-Sep-2025",
+        "client_name": "Avkash Mishra",
+        "client_address1": "SUDAMAPURI VIJAYNAGA",
+        "client_address2": "Ghaziabad",
+        "client_gstin": "09ENEPM4809Q1Z8",
+        "my_gstin": "09ENEPM4809Q1Z8",
+        "particulars": "Accounting Service",
+        "amount": 8000.0,
+        "amounts": null,
+        "sub_total": 8000.0,
+        "igst": 0.0,
+        "cgst": 720.0,
+        "sgst": 720.0,
+        "grand_total": 9440.0
     }
 ]
